@@ -1,0 +1,170 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <tuple>
+#include <chrono>
+#include <cstdlib>
+#include <ctime>
+#include <algorithm>
+using namespace std;
+using namespace std::chrono;
+
+
+int e = 0;
+
+void printv(const vector<vector<double>>& a) {
+    size_t n = a.size();
+    cout << endl;
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            cout << a[i][j] << "     ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+void LR_for_triangular(vector<vector<double>>& A, double o) {
+       int n = A.size(), i;
+       ///printv(A);
+       vector<vector<double>> L, R;
+       if (n == 2) {
+           double p1, p2;
+           double D = (A[0][0] + A[1][1]) * (A[0][0] + A[1][1]) - 4 * (A[0][0] * A[1][1] - A[0][1] * A[1][0]);
+           if (D >= 0) {
+               p1 = (sqrt(D) + A[0][0] + A[1][1]) / 2;
+               e += 1;
+               ///cout << e << " собственное значение = " << p1 << endl;
+               p2 = (-sqrt(D) + A[0][0] + A[1][1]) / 2;
+               e += 1;
+               ///cout << e << " собственной значение = " << p2 << endl;
+           }
+           else if (D < 0) {
+               double a, i1, i2;
+               a = (A[0][0] + A[1][1]) / 2;
+               i1 = sqrt(-D);
+               i2 = -sqrt(-D);
+               e += 1;
+               ///cout << e << " собственной значение = " << a << " + ( " << i1 << "i )" << endl;
+               e += 1;
+               ///cout << e << " собственной значение = " << a << " + ( " << i2 << "i )" << endl;
+           }
+       }
+       else if (n == 1) {
+    	   e++;
+    	   ///cout << e << " собственное значение = " << A[0][0] << endl;
+       }
+       else {
+    	   int d = 0;
+		   for (i = n - 2; i >= 0; --i) {
+			   if (A[i + 1][i] < pow(10, -7) * o) {
+				   d = 1;
+				   vector<vector<double>> S(i + 1);
+				   vector<vector<double>> T(n - i - 1);
+				   for (int j = 0; j <= i; ++j) {
+					   S[j].resize(i + 1);
+					   for (int k = 0; k <= i; ++k) {
+						   S[j][k] = A[j][k];
+					   }
+				   }
+				   for (int j = 0; j < n - i - 1; ++j) {
+					   T[j].resize(n - i - 1);
+					   for (int k = 0; k < n - i - 1; ++k) {
+						   T[j][k] = A[j + i + 1][k + i + 1];
+					   }
+				   }
+				   LR_for_triangular(S, o);
+				   LR_for_triangular(T, o);
+				   return;
+			   }
+		   }
+		   if (d == 0) {
+			   double s = A[n - 1][n - 1];
+			   if (s == 0)
+				   s = pow(10, -7);
+			   vector<vector<double>> LR(n);
+			   for (i = 0; i < n; ++i) {
+				   LR[i].resize(n);
+				   LR[0][i] = A[0][i];
+			   }
+			   int ok = 0;
+			   while (ok == 0) {
+				   ok = 1;
+				   int i;
+				   for (int i = 0; i < n; ++i)
+					   A[i][i] -= s;
+				   LR[0][0] -= s;
+				   for (i = 1; i < n; ++i) {
+					   if (A[i][i - 1] != 0 && LR[i - 1][i - 1] == 0) {
+						   ok = 0;
+						   s += pow(10, -7);
+					   }
+					   else
+					       LR[i][i - 1] = A[i][i - 1] / LR[i - 1][i - 1];
+					   for (int k = i; k < n; ++k)
+						   LR[i][k] = A[i][k] - LR[i][i - 1] * LR[i - 1][k];
+				   }
+			   }
+			   for (i = 0; i < n; ++i) {
+				   A[i][n - 1] = LR[i][n - 1];
+				   if (i >= 1)
+					   A[i][i - 1] = LR[i][i] * LR[i][i - 1];
+				   for (int k = i; k < n - 1; ++k)
+					   A[i][k] = LR[i][k] + LR[i][k + 1] * LR[k + 1][k];
+			   }
+			   for (i = 0; i < n; ++i)
+				   A[i][i] += s;
+			   LR_for_triangular(A, o);
+		   }
+       }
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    int n;
+    cin >> n;
+    vector<vector<double>> A(n);
+    srand(time(NULL)):
+    for (int i = 0; i < n; ++i) {
+			A[i].resize(n);
+			for (int j = 0; j < n; ++j) {
+				A[i][j] = -1000 + rand() % 2001;
+			}
+		}
+		///A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+		auto start = steady_clock::now();
+		for (int i = 0; i < n - 2; ++i) {
+			for (int j = i + 2; j < n; ++j) {
+				///R = T(s + 1, i, s, P);
+				double x = sqrt(A[i + 1][i] * A[i + 1][i] + A[j][i] * A[j][i]);
+				if (x != 0) {
+					double a = A[i + 1][i] / x;
+					double b = A[j][i] / x;
+					for (int l = 0; l < n; ++l) {
+						double t = A[i + 1][l];
+						A[i + 1][l] = a * A[i + 1][l] + b * A[j][l];
+						A[j][l] = -(b * t) + a * A[j][l];
+					}
+					/*R[s + 1][i] = -R[s + 1][i];
+					R[i][s + 1] = -R[i][s + 1];*/
+					for (int l = 0; l < n; ++l) {
+						double t = A[l][i + 1];
+						A[l][i + 1] = A[l][i + 1] * a + A[l][j] * b;
+						A[l][j] = -(t * b) + A[l][j] * a;
+					}
+				}
+			}
+		}
+		double o = 0;
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				o += pow(A[i][j], 2);
+			}
+		}
+		o = sqrt(o);
+		LR_for_triangular(A, o);
+		auto finish = steady_clock::now();
+		a.push_back(duration_cast<milliseconds>(finish - start).count());
+    }
+    return 0;
+}
